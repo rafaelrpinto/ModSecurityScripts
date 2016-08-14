@@ -1,0 +1,95 @@
+############# Install the OS packages ##############
+sudo apt-get update
+sudo  apt-get install apache2 libapache2-modsecurity git
+
+############# Apache basic HTTPS and reverse proxy configuration ##############
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo a2enmod rewrite
+sudo a2enmod headers
+sudo a2enmod proxy_connect
+sudo a2enmod proxy_html
+sudo a2enmod ssl
+
+#Deflate messes with rsub: https://github.com/SpiderLabs/ModSecurity/issues/944
+#sudo a2enmod deflate
+sudo a2dismod deflate
+
+sudo mkdir /etc/apache2/ssl
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/apache2/ssl/apache.key -out /etc/apache2/ssl/apache.crt
+
+sudo nano /etc/apache2/sites-available/default-ssl.conf
+  (Replace the entire content with the following tag)
+<IfModule mod_ssl.c>
+    <VirtualHost _default_:443>
+        #Enable HTTPs on our self-signed certificates
+        SSLEngine on
+        SSLCertificateFile /etc/apache2/ssl/apache.crt
+        SSLCertificateKeyFile /etc/apache2/ssl/apache.key
+
+        #Enables this instance to be a proxy for the application and accept its self signed certificate
+        SSLProxyEngine on
+        SSLProxyVerify none
+        SSLProxyCheckPeerCN off
+        SSLProxyCheckPeerName off
+        SSLProxyCheckPeerExpire off
+        ProxyPreserveHost On
+        ProxyPass / https://localhost:8080/
+        ProxyPassReverse / https://localhost:8080/
+
+        #Security Headers
+        Header always append X-Frame-Options DENY
+        Header always set Strict-Transport-Security "max-age=63072000; includeSubdomains;"
+    </VirtualHost>
+</IfModule>
+  #Limits HTTP methods
+  <Location />
+    <LimitExcept GET POST>
+      order deny,allow
+      deny from all
+    </LimitExcept>
+  </Location>
+
+
+
+sudo nano /etc/apache2/sites-available/000-default.conf
+  (Replace the entire content with the following tag)
+  <VirtualHost *:80>
+	  #Force the connection to always go through HTTPS
+	  RewriteEngine On
+	  RewriteCond %{HTTPS} !=on
+	  RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R,L]
+  </VirtualHost>
+
+sudo a2ensite default-ssl.conf
+sudo service apache2 start
+
+############# Modsecurity Basic configuration ##############
+sudo mv /etc/modsecurity/modsecurity.conf{-recommended,}
+
+sudo nano /etc/modsecurity/modsecurity.conf
+  (Change SecRuleEngine property value from DetectionOnly to On)
+
+sudo nano /etc/apache2/mods-enabled/modsecurity.conf
+    (Define the entire content with the following tag)
+    <IfModule security2_module> 
+      Include "/usr/share/modsecurity-crs/owasp-modsecurity_crs_10_setup.conf"
+      Include "/usr/share/modsecurity-crs/activated_rules/*.conf"
+    </IfModule>
+
+############# Get the updated OWASP rules and activate them (all base rules + CSRF and session related optionals) ##############    
+cd /opt
+sudo git clone https://github.com/SpiderLabs/owasp-modsecurity-crs
+sudo chown -R www-data:www-data owasp-modsecurity-crs/
+
+sudo ln -s /opt/owasp-modsecurity-crs/modsecurity_crs_10_setup.conf.example /usr/share/modsecurity-crs/owasp-modsecurity_crs_10_setup.conf
+sudo ln -s /opt/owasp-modsecurity-crs/base_rules/modsecurity* /usr/share/modsecurity-crs/activated_rules/
+
+sudo service apache2 restart
+
+############# Watch Modsecurity's logs to see the attacks being detected ##############
+sudo tail -f  /var/log/apache2/modsec_audit.log
+or
+sudo less  /var/log/apache2/modsec_audit.log
+
+
