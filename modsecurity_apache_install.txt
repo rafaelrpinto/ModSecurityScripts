@@ -80,10 +80,11 @@ sudo nano /etc/apache2/mods-enabled/modsecurity.conf
 ############# Get the updated OWASP rules and activate them (all base rules + CSRF and session related optionals) ##############    
 cd /opt
 sudo git clone https://github.com/SpiderLabs/owasp-modsecurity-crs
-sudo chown -R www-data:www-data owasp-modsecurity-crs/
+sudo git clone https://github.com/rafaelrpinto/ModSecurityScripts
 
 sudo ln -s /opt/owasp-modsecurity-crs/modsecurity_crs_10_setup.conf.example /usr/share/modsecurity-crs/owasp-modsecurity_crs_10_setup.conf
 sudo ln -s /opt/owasp-modsecurity-crs/base_rules/modsecurity* /usr/share/modsecurity-crs/activated_rules/
+sudo ln -s /opt/ModSecurityScripts/Rules/* /usr/share/modsecurity-crs/activated_rules/
 
 sudo service apache2 restart
 
