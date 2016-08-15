@@ -10,10 +10,7 @@ sudo a2enmod headers
 sudo a2enmod proxy_connect
 sudo a2enmod proxy_html
 sudo a2enmod ssl
-
-#Deflate messes with rsub: https://github.com/SpiderLabs/ModSecurity/issues/944
-#sudo a2enmod deflate
-sudo a2dismod deflate
+sudo a2enmod deflate
 
 sudo mkdir /etc/apache2/ssl
 sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/apache2/ssl/apache.key -out /etc/apache2/ssl/apache.crt
@@ -40,6 +37,7 @@ sudo nano /etc/apache2/sites-available/default-ssl.conf
         #Security Headers
         Header always append X-Frame-Options DENY
         Header always set Strict-Transport-Security "max-age=63072000; includeSubdomains;"
+        Header always set Content-Security-Policy: "script-src 'self'"
     </VirtualHost>
 </IfModule>
   #Limits HTTP methods
@@ -77,7 +75,7 @@ sudo nano /etc/apache2/mods-enabled/modsecurity.conf
       Include "/usr/share/modsecurity-crs/activated_rules/*.conf"
     </IfModule>
 
-############# Get the updated OWASP rules and activate them (all base rules + CSRF and session related optionals) ##############    
+############# Get the updated OWASP rules ##############    
 cd /opt
 sudo git clone https://github.com/SpiderLabs/owasp-modsecurity-crs
 sudo git clone https://github.com/rafaelrpinto/ModSecurityScripts
@@ -90,7 +88,5 @@ sudo service apache2 restart
 
 ############# Watch Modsecurity's logs to see the attacks being detected ##############
 sudo tail -f  /var/log/apache2/modsec_audit.log
-or
-sudo less  /var/log/apache2/modsec_audit.log
 
 
