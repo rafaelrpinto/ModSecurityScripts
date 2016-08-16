@@ -34,8 +34,8 @@ sudo nano /etc/apache2/sites-available/default-ssl.conf
         SSLProxyCheckPeerExpire off
         ProxyPreserveHost On
         #ProxyPass /errors !
-        ProxyPass / https://localhost:8080/
-        ProxyPassReverse / https://localhost:8080/
+        ProxyPass / https://localhost:9000/
+        ProxyPassReverse / https://localhost:9000/
 
         #Security Headers
         Header always append X-Frame-Options DENY
