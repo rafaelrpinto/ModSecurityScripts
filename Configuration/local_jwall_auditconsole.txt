@@ -1,0 +1,20 @@
+# Copy the conif template to apache
+sudo mkdir /etc/modsecurity/mlogc/
+sudo cp /usr/share/doc/libapache2-modsecurity/mlogc-default.conf /etc/modsecurity/mlogc/mlogc.conf
+
+# Configure mlog to point to auditconsole
+sudo nano /etc/modsecurity/mlogc/mlogc.conf
+  CollectorRoot       "/home/jwall"
+  ConsoleURI          "http://localhost:8080/rpc/auditLogReceiver"
+  SensorUsername      "SensorTest"
+  SensorPassword      "SensorTest"
+
+# Configure modsecurity to use concurrent mlogc
+sudo nano /etc/modsecurity/modsecurity.conf
+  SecAuditEngine On
+  SecAuditLogRelevantStatus "^(?:5|4(?!04))"
+  SecAuditLogParts ABIJDEFHZ
+  SecAuditLogType Concurrent
+  SecAuditLog "|/usr/bin/mlogc /etc/modsecurity/mlogc/mlogc.conf"
+  SecAuditLogStorageDir /home/jwall/data
+

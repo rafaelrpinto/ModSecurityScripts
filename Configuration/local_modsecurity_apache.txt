@@ -19,7 +19,7 @@ sudo nano /etc/apache2/sites-available/default-ssl.conf
   (Replace the entire content with the following tag)
 <IfModule mod_ssl.c>
     <VirtualHost _default_:443>
-        #DocumentRoot /var/www/html
+        DocumentRoot /var/www/html
 
         #Enable HTTPs on our self-signed certificates
         SSLEngine on
@@ -33,7 +33,9 @@ sudo nano /etc/apache2/sites-available/default-ssl.conf
         SSLProxyCheckPeerName off
         SSLProxyCheckPeerExpire off
         ProxyPreserveHost On
-        #ProxyPass /errors !
+        # No proxy for the static error pages
+        ProxyPass /errors !
+        # The target application is running on https://localhost:9000/
         ProxyPass / https://localhost:9000/
         ProxyPassReverse / https://localhost:9000/
 
@@ -42,7 +44,7 @@ sudo nano /etc/apache2/sites-available/default-ssl.conf
         Header always set Strict-Transport-Security "max-age=63072000; includeSubdomains;"
         Header always set Content-Security-Policy: "script-src 'self' 'unsafe-inline'"
 
-        #ErrorDocument 403 /errors/403.html
+        ErrorDocument 403 /errors/403.html
     </VirtualHost>
 </IfModule>
   #Limits HTTP methods
@@ -53,13 +55,13 @@ sudo nano /etc/apache2/sites-available/default-ssl.conf
     </LimitExcept>
   </Location>
 
+sudo nano /var/www/html/errors/403.html
+  (Create the HTML for the HTTP 403 error page. repeat the same steps for 400, 404 and 500)
 
-
-
+#Force HTTP connections to always go through HTTPS
 sudo nano /etc/apache2/sites-available/000-default.conf
   (Replace the entire content with the following tag)
   <VirtualHost *:80>
-	  #Force the connection to always go through HTTPS
 	  RewriteEngine On
 	  RewriteCond %{HTTPS} !=on
 	  RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R,L]
@@ -74,11 +76,17 @@ sudo mv /etc/modsecurity/modsecurity.conf{-recommended,}
 sudo nano /etc/modsecurity/modsecurity.conf
   (Change SecRuleEngine property value from DetectionOnly to On)
 
+# Configure the rules to be executed in roder
 sudo nano /etc/apache2/mods-enabled/modsecurity.conf
     (Define the entire content with the following tag)
     <IfModule security2_module> 
+      #First we load OWASP crs configuration
       Include "/usr/share/modsecurity-crs/owasp-modsecurity_crs_10_setup.conf"
-      Include "/usr/share/modsecurity-crs/activated_rules/*.conf"
+      
+      # Then we include the security rules 
+      Include "/usr/share/modsecurity-crs/activated_rules/executed_before_owasp_crs_base_rules/*.conf"
+      Include "/usr/share/modsecurity-crs/activated_rules/owasp_crs_base_rules/*.conf"
+      Include "/usr/share/modsecurity-crs/activated_rules/executed_after_owasp_crs_base_rules/*.conf"
     </IfModule>
 
 ############# Get the updated OWASP rules ##############    
@@ -86,9 +94,15 @@ cd /opt
 sudo git clone https://github.com/SpiderLabs/owasp-modsecurity-crs
 sudo git clone https://github.com/rafaelrpinto/ModSecurityScripts
 
+# Link OWASP crs configuration
 sudo ln -s /opt/owasp-modsecurity-crs/modsecurity_crs_10_setup.conf.example /usr/share/modsecurity-crs/owasp-modsecurity_crs_10_setup.conf
-sudo ln -s /opt/owasp-modsecurity-crs/base_rules/modsecurity* /usr/share/modsecurity-crs/activated_rules/
+
+# Add our rules
 sudo ln -s /opt/ModSecurityScripts/Rules/* /usr/share/modsecurity-crs/activated_rules/
+
+# Link the OWASP base rules
+sudo mkdir /usr/share/modsecurity-crs/activated_rules/owasp_crs_base_rules
+sudo ln -s /opt/owasp-modsecurity-crs/base_rules/modsecurity* /usr/share/modsecurity-crs/activated_rules/owasp_crs_base_rules
 
 sudo service apache2 restart
 
