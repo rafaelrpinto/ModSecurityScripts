@@ -56,7 +56,7 @@ sudo nano /etc/apache2/sites-available/default-ssl.conf
   </Location>
 
 sudo nano /var/www/html/errors/403.html
-  (Create the HTML for the HTTP 403 error page. repeat the same steps for 400, 404 and 500)
+  (Create the HTML for the HTTP 403 error page. repeat the same steps for 404 and 500)
 
 #Force HTTP connections to always go through HTTPS
 sudo nano /etc/apache2/sites-available/000-default.conf
@@ -100,9 +100,12 @@ sudo ln -s /opt/owasp-modsecurity-crs/modsecurity_crs_10_setup.conf.example /usr
 # Add our rules
 sudo ln -s /opt/ModSecurityScripts/Rules/* /usr/share/modsecurity-crs/activated_rules/
 
-# Link the OWASP base rules
+# Add OWASP base rules
 sudo mkdir /usr/share/modsecurity-crs/activated_rules/owasp_crs_base_rules
 sudo ln -s /opt/owasp-modsecurity-crs/base_rules/modsecurity* /usr/share/modsecurity-crs/activated_rules/owasp_crs_base_rules
+
+# By using links whenever we need to update the rules we just run "git pull" on the 
+# cloned repositories and restart the apache service
 
 sudo service apache2 restart
 

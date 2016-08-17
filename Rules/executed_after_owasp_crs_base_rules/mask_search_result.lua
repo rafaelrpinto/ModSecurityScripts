@@ -1,5 +1,7 @@
---This scripts searches for the search keyword on the search result HTML and 
---adds random invalid tags between its characters.
+-- This scripts searches for the search keyword on the search result HTML and 
+-- adds random invalid tags between its characters to attempt to mitigate side channel attacks. 
+-- Technically this will increase the HTML size, but since it's the same token the compression
+-- should reduce it.
 
 function main()
     local keyword = m.getvar("ARGS.keyword");
