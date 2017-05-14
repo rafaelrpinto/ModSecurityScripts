@@ -3,4 +3,6 @@ Collection of ModSecurity 2.9.1 scripts and Apache configurations that protects 
 
 The article I wrote about these scripts is [available on linkedin](https://www.linkedin.com/pulse/fix-without-touching-virtual-patching-web-modsecurity-rafael-pinto). 
 
-**TODO: create docker images
+TODO: 
+- create docker images
+- migrate to ModSecurity 3.x
